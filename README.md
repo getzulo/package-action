@@ -7,7 +7,7 @@ workflow's own GitHub OIDC token. **No secret is stored in the repository.**
 ```yaml
 on:
   push:
-    tags: ['v*']
+    branches: [main]
 
 permissions:
   contents: read
@@ -18,10 +18,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - id: version                      # the package is versioned by its model
+        run: echo "version=$(jq -r .object.modelVersion AcmeSales/model.json)" >> "$GITHUB_OUTPUT"
       - uses: getzulo/package-action@v1
         with:
           models: AcmeSales,AcmeCommon     # model folders of the workspace
           id: acme-erp                     # the package's id in its project
+          version: ${{ steps.version.outputs.version }}
           tenant: acme                     # acme.zulo.one
           client-id: acme-k3x9p2q7         # from the portal's CI credentials page; not a secret
 ```
@@ -33,8 +36,12 @@ In the portal, **CI credentials**:
 1. Create a credential with the `packages:write` scope. Its secret is not
    needed by this action — you may discard it.
 2. **Trust this GitHub repository** for it: `owner/repository` and the exact ref
-   the workflow runs on — `refs/tags/v1.4.0`, or `refs/heads/main`. No wildcards:
-   "any branch may upload" is exactly what this check exists to prevent.
+   the workflow runs on — `refs/heads/main`. No wildcards: "any branch may upload"
+   is exactly what this check exists to prevent. That is why the example runs on
+   `main` and takes the version from `model.json`: a workflow on `v*` tags would
+   need a new registration for every tag (login answers `ref 'refs/tags/v1.0.2' is
+   not registered…`). Bump `modelVersion` in the same commit as the change; the
+   same version with the same content is a no-op (200), a new version is a new package.
 
 ## What it does
 
@@ -56,7 +63,7 @@ Outputs: `content-hash`, `package-id`, `file`.
 |---|---|---|
 | `models` | — | model folders, comma-separated; `Name@1.4.0` pins the version `model.json` must say |
 | `id` | — | the package id |
-| `version` | the ref name | semver; a leading `v` is dropped |
+| `version` | the ref name | semver; a leading `v` is dropped. On a branch, pass the model's version (see the example) |
 | `tenant` | — | |
 | `project` | the tenant's name | |
 | `client-id` | — | the credential's id |
