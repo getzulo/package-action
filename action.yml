@@ -1,0 +1,83 @@
+name: ZuloOne package
+description: >-
+  Build a .zulopkg from your workspace with `zulo package build` and upload it
+  to the ZuloOne Lifecycle Portal — authenticated by the workflow's own GitHub
+  OIDC token, with no secret stored in the repository.
+author: ZuloOne
+branding:
+  icon: package
+  color: green
+
+inputs:
+  models:
+    description: Model folders of the workspace to package, comma-separated. `Name@1.4.0` pins the version model.json must say.
+    required: true
+  id:
+    description: The package's id in its project — lowercase letters, digits and dashes, stable across versions.
+    required: true
+  version:
+    description: The package version (semver). A leading "v" is dropped, so a tag name works.
+    required: false
+    default: ${{ github.ref_name }}
+  tenant:
+    description: Your tenant's name (okrasheno for okrasheno.zulo.one).
+    required: true
+  project:
+    description: The project in the tenant the package belongs to. Defaults to the tenant's name — the project a tenant's first upload creates.
+    required: false
+    default: ''
+  client-id:
+    description: >-
+      The credential's id from the portal's CI credentials page — not a secret.
+      The credential must trust this repository and this exact ref (GitHub federation) and hold packages:write.
+    required: true
+  workspace:
+    description: The folder holding the model folders.
+    required: false
+    default: '.'
+  title:
+    description: A title shown in the library.
+    required: false
+    default: ''
+  requires-platform:
+    description: The oldest ZuloOne platform version the package may be applied to.
+    required: false
+    default: ''
+  portal:
+    description: The Lifecycle Portal's address.
+    required: false
+    default: https://lcp.getzulo.com
+  login:
+    description: login.getzulo.com — where the GitHub token is exchanged.
+    required: false
+    default: https://login.getzulo.com
+
+outputs:
+  content-hash:
+    description: The package's contentHash (sha256:…).
+    value: ${{ steps.run.outputs.content-hash }}
+  package-id:
+    description: The package's id in the portal (a GUID).
+    value: ${{ steps.run.outputs.package-id }}
+  file:
+    description: Path of the built .zulopkg.
+    value: ${{ steps.run.outputs.file }}
+
+runs:
+  using: composite
+  steps:
+    - id: run
+      shell: bash
+      run: '"$GITHUB_ACTION_PATH/run.sh"'
+      env:
+        ZULO_MODELS: ${{ inputs.models }}
+        ZULO_ID: ${{ inputs.id }}
+        ZULO_VERSION: ${{ inputs.version }}
+        ZULO_TENANT: ${{ inputs.tenant }}
+        ZULO_PROJECT: ${{ inputs.project }}
+        ZULO_CLIENT_ID: ${{ inputs.client-id }}
+        ZULO_WORKSPACE: ${{ inputs.workspace }}
+        ZULO_TITLE: ${{ inputs.title }}
+        ZULO_REQUIRES_PLATFORM: ${{ inputs.requires-platform }}
+        ZULO_PORTAL: ${{ inputs.portal }}
+        ZULO_LOGIN: ${{ inputs.login }}
