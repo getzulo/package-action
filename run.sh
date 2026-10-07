@@ -54,7 +54,8 @@ exchange="$(curl -sS -w '\n%{http_code}' "${login}/token" \
   --data-urlencode "resource=lcp")"
 code="${exchange##*$'\n'}"; body="${exchange%$'\n'*}"
 if [ "$code" != "200" ]; then
-  fail "login refused the exchange (${code}): $(echo "$body" | jq -r '.error_description // .error // .' 2>/dev/null || echo "$body"). The credential must trust ${GITHUB_REPOSITORY} at ${GITHUB_REF}."
+  reason="$(echo "$body" | jq -r '.error_description // .error // .' 2>/dev/null || echo "$body")"
+  fail "login refused the exchange (${code}): ${reason%.}. The credential must trust ${GITHUB_REPOSITORY} at ${GITHUB_REF} in the portal's CI credentials."
 fi
 token="$(echo "$body" | jq -r .access_token)"
 echo "::add-mask::$token"
